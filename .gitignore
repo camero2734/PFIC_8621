@@ -1,0 +1,4 @@
+inputs/*.xlsx
+outputs/*.pdf
+
+*.xlsx#

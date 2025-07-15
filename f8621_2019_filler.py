@@ -35,7 +35,7 @@ def create_overlay(path):
     return number_of_lots
 
 def add_personal_info(c,coordinates,data_dict):
-    keys = ['Name of shareholder', 'Identifying Number', 'Address', 'City, State, Zip', 'Tax year', 'Type of Shareholder']
+    keys = ['Name of shareholder', 'Identifying Number', 'Address', 'City, State, Zip, Country', 'Tax year', 'Type of Shareholder']
     for key in keys:
         c.drawString(coordinates[key][0],coordinates[key][1], data_dict[key])
 
@@ -94,6 +94,8 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
     price_aquisition = df_lot['Price per share: Acquisition'][lot]
     cost_aquisition = df_lot['Cost: Acquisition'][lot]
     er_of_aqiusition   = df_lot['Exchange Rate: Acquisition'][lot]
+
+    print(df_lot)
 
     number_of_shares = cost_aquisition/price_aquisition
     original_basis = cost_aquisition/er_of_aqiusition
@@ -185,7 +187,10 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
 
     c.showPage()
     for key in etf_dict.keys():
-        c.drawString(coordinates[key][0],coordinates[key][1], '{}'.format(etf_dict[key]))
+        if key in coordinates:
+            c.drawString(coordinates[key][0],coordinates[key][1], '{}'.format(etf_dict[key]))
+        else:
+            print(f"Warning: {key} not found in coordinates dictionary. Skipping.")
     return True
 
 
@@ -238,82 +243,35 @@ def create_full_8621(path,number_of_page_2,output):
 def create_gui():
     data_dict = {}
     file_dict = {}
-    window = tkinter.Tk()
-    window.title("8621 Filler")
-    window.geometry('500x400')
-    lbl0 = tkinter.Label(window, text='Name of shareholder')
-    lbl0.grid(column=0, row=0)
-    txt0=tkinter.Entry(window,width=30)
-    txt0.grid(column=1, row=0)
-    lbl1 = tkinter.Label(window, text='Identifying Number')
-    lbl1.grid(column=0, row=1)
-    txt1=tkinter.Entry(window,width=30)
-    txt1.grid(column=1, row=1)
-    lbl2 = tkinter.Label(window, text='Address')
-    lbl2.grid(column=0, row=2)
-    txt2=tkinter.Entry(window,width=30)
-    txt2.grid(column=1, row=2)
-    lbl3 = tkinter.Label(window, text='City, State, Zip')
-    lbl3.grid(column=0, row=3)
-    txt3=tkinter.Entry(window,width=30)
-    txt3.grid(column=1, row=3)
-    lbl4 = tkinter.Label(window, text='Tax year')
-    lbl4.grid(column=0, row=4)
-    txt4=tkinter.Entry(window,width=30)
-    txt4.grid(column=1, row=4)
-    lbl5 = tkinter.Label(window, text='Type of Shareholder')
-    lbl5.grid(column=0, row=5)
-    txt5=tkinter.Entry(window,width=30)
-    txt5.grid(column=1, row=5)
-    lbl6 = tkinter.Label(window, text='Name of PFIC')
-    lbl6.grid(column=0, row=6)
-    txt6=tkinter.Entry(window,width=30)
-    txt6.grid(column=1, row=6)
-    lbl7 = tkinter.Label(window, text='PFIC Address')
-    lbl7.grid(column=0, row=7)
-    txt7=tkinter.Entry(window,width=30)
-    txt7.grid(column=1, row=7)
-    lbl8 = tkinter.Label(window, text='PFIC Reference ID')
-    lbl8.grid(column=0, row=8)
-    txt8=tkinter.Entry(window,width=30)
-    txt8.grid(column=1, row=8)
-    def clicked():
-        data_dict['Name of shareholder'] = txt0.get()
-        data_dict['Identifying Number'] = txt1.get()
-        data_dict['Address'] = txt2.get()
-        data_dict['City, State, Zip'] = txt3.get()
-        data_dict['Tax year'] = txt4.get()
-        data_dict['Type of Shareholder'] = txt5.get()
-        data_dict['Name of PFIC'] = txt6.get()
-        data_dict['PFIC Address'] = txt7.get()
-        data_dict['PFIC Reference ID'] = txt8.get()
 
-    def clicked_files():
-        file_dict['file'] = tkinter.filedialog.askopenfilename()
+    print("Enter the following details:")
 
+    # data_dict['Name of shareholder'] = input("Name of shareholder: ")
+    # data_dict['Identifying Number'] = input("Identifying Number (e.g., SSN): ")
+    # data_dict['City, State, Zip, Country'] = input("City, State, Zip, Country: ")
+    # data_dict['Address'] = input("Address: ")
+    # data_dict['Tax year'] = input("Tax year (last two digits): ")
+    # data_dict['Type of Shareholder'] = '\u2713'  # assuming always an individual
+    # data_dict['Name of PFIC'] = input("Name of PFIC: ")
+    # data_dict['PFIC Address'] = input("PFIC Address: ")
+    # pfic_id = input("PFIC Reference ID: ")
+    # data_dict['PFIC Reference ID'] = pfic_id
 
-    btn1 = tkinter.Button(window, text="Select File", command=clicked_files)
-    btn1.grid(column=2, row=5)
+    # Placeholder values:
+    data_dict['Name of shareholder'] = 'John Doe'
+    data_dict['Identifying Number'] = '123-45-6789'
+    data_dict['City, State, Zip, Country'] = 'Anytown, ST 12345'
+    data_dict['Address'] = '123 Main St'
+    data_dict['Tax year'] = '25'
+    data_dict['Type of Shareholder'] = '\u2713'  # assuming always an individual
+    data_dict['Name of PFIC'] = 'vwce'
+    data_dict['PFIC Address'] = '456 Market St'
+    pfic_id = 'vwce'
+    data_dict['PFIC Reference ID'] = pfic_id
 
-    btn = tkinter.Button(window, text="Enter and press exit", command=clicked)
-    btn.grid(column=2, row=0)
-
-    window.mainloop()
-##    for key in data_dict.keys():
-##        print(data_dict[key])
-##    print(file_dict['file'])
-    if True:
-        data_dict['Name of shareholder'] = 'John Expat'
-        data_dict['Identifying Number'] = '123-45-6789'
-        data_dict['Address'] = '1600 Pennsylvania Avenue'
-        data_dict['City, State, Zip'] = 'Washigton DC'
-        data_dict['Tax year'] = '23'
-        data_dict['Type of Shareholder'] = u'\u2713'
-        data_dict['Name of PFIC'] = 'My_ETF'
-        data_dict['PFIC Address'] = 'My_ETF_Address'
-        data_dict['PFIC Reference ID'] = 'MY_ETF_REF_ID'
-        file_dict['file'] = 'my_etf.xlsx'
-    print(data_dict.keys())
+    default_path = f"./{pfic_id}.xlsx"
+    file_input = input(f"Path to Excel file [default: {default_path}]: ").strip()
+    file_dict = {'file': file_input if file_input else default_path}
     return data_dict, file_dict
 
 
@@ -331,7 +289,7 @@ def main():
                FORM_OVERLAY_PATH,
                FORM_OUTPUT_PATH)
 
-    os.system(r"start chrome {}".format(FORM_OUTPUT_PATH))
+    print(f"Form filled and saved to {FORM_OUTPUT_PATH}")
 
 
 main()
