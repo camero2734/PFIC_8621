@@ -5,6 +5,7 @@ import numpy as np
 import glob
 import os
 from f8621_xy_coordinates import get_coordinates
+import logging
 
 def create_overlay(path: str, data_dict: dict, xlsx: str):
     """
@@ -16,7 +17,7 @@ def create_overlay(path: str, data_dict: dict, xlsx: str):
     df_eoy = pd.read_excel(xlsx, sheet_name = 'EOY Details')
     df_pfic = pd.read_excel(xlsx, sheet_name = 'PFIC Details')
     number_of_lots = len(df_lot.index)
-    print(df_lot)
+    logging.debug(f"📊 Lot details dataframe:\n{df_lot}")
     c = canvas.Canvas(path)
     coordinates = get_coordinates()
     add_personal_info(c,coordinates,data_dict)
@@ -93,7 +94,7 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
     cost_aquisition = df_lot['Cost: Acquisition'][lot]
     er_of_aqiusition   = df_lot['Exchange Rate: Acquisition'][lot]
 
-    print(df_lot)
+    logging.debug(f"📊 Processing lot {lot}:\n{df_lot}")
 
     number_of_shares = cost_aquisition/price_aquisition
     original_basis = cost_aquisition/er_of_aqiusition
@@ -109,12 +110,12 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
 
     # Check if lot was sold and get last price and ER
     if np.isnan(df_lot["Price per share: Sale"][lot]):
-        print("no sale")
+        logging.info(f"📈 No sale detected for lot {lot}")
         last_er = df_eoy[df_eoy['Year']==current_year]["Exchange Rate"].values[0]
         last_price = df_eoy[df_eoy['Year']==current_year]["Price"].values[0]
         fmv_dollars = round(number_of_shares*last_price/last_er)
-        print("Last ER={}, Last Price={}".format(last_er,last_price))
-        print("FMV={}, Adjusted Basis={}".format(fmv_dollars,adjusted_basis))
+        logging.debug(f"💱 Last ER={last_er}, Last Price={last_price}")
+        logging.debug(f"💰 FMV={fmv_dollars}, Adjusted Basis={adjusted_basis}")
 
         etf_dict['10a'] = fmv_dollars
         etf_dict['10b'] = adjusted_basis
@@ -128,14 +129,14 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
                     loss_from_ten_c = -1*unreversed_inclusions
                 etf_dict['11'] = unreversed_inclusions
                 etf_dict['12'] = loss_from_ten_c
-                print("12:  Include {} as an ordinary loss on your tax return".format(etf_dict['12']))
+                logging.info(f"📉 12: Include {etf_dict['12']} as an ordinary loss on your tax return")
             else:
                 etf_dict['11'] = ''
                 etf_dict['12'] = ''
         else:
             etf_dict['11'] = ''
             etf_dict['12'] = ''
-            print("10c: Add gain of {} to your ordinary income".format(etf_dict['10c']))
+            logging.info(f"📈 10c: Add gain of {etf_dict['10c']} to your ordinary income")
         etf_dict['13a'] = ''
         etf_dict['13b'] = ''
         etf_dict['13c'] = ''
@@ -144,15 +145,15 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
         etf_dict['14c'] = ''
 
     else:
-        print("sale")
+        logging.info(f"💸 Sale detected for lot {lot}")
         last_er = df_lot['Exchange Rate: Sale'][lot]
         last_price = df_lot['Price per share: Sale'][lot]
         year_of_sale = df_lot['Date: Sale'][lot].year
         if year_of_sale<current_year:
             return False
         fmv_dollars = round(number_of_shares*last_price/last_er)
-        print("Last ER={}, Last Price={}".format(last_er,last_price))
-        print("FMV={}, Adjusted Basis={}".format(fmv_dollars,adjusted_basis))
+        logging.debug(f"💱 Last ER={last_er}, Last Price={last_price}")
+        logging.debug(f"💰 FMV={fmv_dollars}, Adjusted Basis={adjusted_basis}")
         etf_dict['13a'] = round(fmv_dollars)
         etf_dict['13b'] = round(adjusted_basis)
         etf_dict['13c'] = etf_dict['13a'] - etf_dict['13b']
@@ -166,17 +167,17 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
                 etf_dict['14a'] = unreversed_inclusions
                 etf_dict['14b'] = loss_from_thirteen_c
                 etf_dict['14c'] = ''
-                print('14b: Enter {} as an ordinary loss'.format(etf_dict['14b']))
+                logging.info(f"📉 14b: Enter {etf_dict['14b']} as an ordinary loss")
             else:
                 etf_dict['14a'] = 0
                 etf_dict['14b'] = 0
                 etf_dict['14c'] = etf_dict['13c']
-                print("14c: Include {} on tax return according to the rules generally applicable for losses provided elsewhere in the Code and regulations".format(etf_dict['14c']))
+                logging.info(f"📉 14c: Include {etf_dict['14c']} on tax return according to the rules generally applicable for losses provided elsewhere in the Code and regulations")
         else:
             etf_dict['14a'] = ''
             etf_dict['14b'] = ''
             etf_dict['14c'] = ''
-            print("13c: Add gain of {} to your ordinary income".format(etf_dict['13c']))
+            logging.info(f"📈 13c: Add gain of {etf_dict['13c']} to your ordinary income")
         etf_dict['10a'] = ''
         etf_dict['10b'] = ''
         etf_dict['10c'] = ''
@@ -188,7 +189,7 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
         if key in coordinates:
             c.drawString(coordinates[key][0],coordinates[key][1], '{}'.format(etf_dict[key]))
         else:
-            print(f"Warning: {key} not found in coordinates dictionary. Skipping.")
+            logging.warning(f"⚠️ {key} not found in coordinates dictionary. Skipping.")
     return True
 
 
@@ -244,57 +245,74 @@ def create_full_8621(path, number_of_page_2, output):
 def read_inputs():
     data_dict = {}
 
-    print("Enter the following details:")
+    logging.info("📝 First, enter some details:")
 
-    # data_dict['Name of shareholder'] = input("Name of shareholder: ")
-    # data_dict['Identifying Number'] = input("Identifying Number (e.g., SSN): ")
-    # data_dict['City, State, Zip, Country'] = input("City, State, Zip, Country: ")
-    # data_dict['Address'] = input("Address: ")
-    # data_dict['Tax year'] = input("Tax year (last two digits): ")
-    # data_dict['Type of Shareholder'] = '\u2713'  # assuming always an individual
+    data_dict['Name of shareholder'] = input("👤 Name of shareholder: ")
+    data_dict['Identifying Number'] = input("🆔 Identifying Number (e.g., SSN): ")
+    data_dict['City, State, Zip, Country'] = input("🌍 City, State, Zip, Country: ")
+    data_dict['Address'] = input("🏠 Address: ")
+    data_dict['Tax year'] = input("📅 Tax year (last two digits): ")
+    data_dict['Type of Shareholder'] = '\u2713'  # assuming always an individual
 
     # Placeholder values:
-    data_dict['Name of shareholder'] = 'John Doe'
-    data_dict['Identifying Number'] = '123-45-6789'
-    data_dict['City, State, Zip, Country'] = 'Anytown, ST 12345'
-    data_dict['Address'] = '123 Main St'
-    data_dict['Tax year'] = '25'
-    data_dict['Type of Shareholder'] = '\u2713'  # assuming always an individual
+    # data_dict['Name of shareholder'] = 'John Doe'
+    # data_dict['Identifying Number'] = '123-45-6789'
+    # data_dict['City, State, Zip, Country'] = 'Anytown, ST 12345'
+    # data_dict['Address'] = '123 Main St'
+    # data_dict['Tax year'] = '25'
+    # data_dict['Type of Shareholder'] = '\u2713'  # assuming always an individual
 
     files = glob.glob('inputs/*.xlsx')
 
     return data_dict, files
 
 
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(levelname)s: %(message)s",
+    )
+
 def main():
-    data_dict, files = read_inputs()
-    if not files:
-        print("No input files found in 'inputs/' directory. Please consult the README for instructions.")
-        exit(1)
+    setup_logging()
+    logging.info("🚀 Form 8621 Filer Initialized")
+    
+    try:
+        data_dict, files = read_inputs()
+        if not files:
+            logging.error("💥 No input files found in 'inputs/' directory. Please consult the README for instructions.")
+            exit(1)
 
-    form = "f8621"
+        form = "f8621"
 
-    OUTPUT_FOLDER = f"./outputs/20{data_dict['Tax year']}/"
-    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+        OUTPUT_FOLDER = f"./outputs/20{data_dict['Tax year']}/"
+        os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-    for file in files:
-        file_name = file.split('/')[-1].split('.')[0]
-        print(f"Processing file: {file_name}")
+        for file in files:
+            file_name = file.split('/')[-1].split('.')[0]
+            logging.info(f"📂 Processing file: {file_name}")
 
-        FORM_FULL_PATH = f"{OUTPUT_FOLDER}{file_name}_full.pdf"
-        FORM_OVERLAY_PATH = f"{OUTPUT_FOLDER}{file_name}_overlay.pdf"
-        FORM_OUTPUT_PATH = f"{OUTPUT_FOLDER}{file_name}.pdf"
+            FORM_FULL_PATH = f"{OUTPUT_FOLDER}{file_name}_full.pdf"
+            FORM_OVERLAY_PATH = f"{OUTPUT_FOLDER}{file_name}_overlay.pdf"
+            FORM_OUTPUT_PATH = f"{OUTPUT_FOLDER}{file_name}.pdf"
 
-        number_of_lots = create_overlay(path=FORM_OVERLAY_PATH, data_dict=data_dict, xlsx=file)
-        create_full_8621(form, number_of_lots, FORM_FULL_PATH)
-        merge_pdfs(FORM_FULL_PATH,
-                FORM_OVERLAY_PATH,
-                FORM_OUTPUT_PATH)
-        
-        # Delete intermediate files
-        os.remove(FORM_FULL_PATH)
-        os.remove(FORM_OVERLAY_PATH)
+            number_of_lots = create_overlay(path=FORM_OVERLAY_PATH, data_dict=data_dict, xlsx=file)
+            create_full_8621(form, number_of_lots, FORM_FULL_PATH)
+            merge_pdfs(FORM_FULL_PATH,
+                    FORM_OVERLAY_PATH,
+                    FORM_OUTPUT_PATH)
 
-        print(f"Form filled and saved to {FORM_OUTPUT_PATH}")
+            # Delete intermediate files
+            os.remove(FORM_FULL_PATH)
+            os.remove(FORM_OVERLAY_PATH)
 
-main()
+            logging.info(f"✅ Form filled and saved to {FORM_OUTPUT_PATH}")
+
+        logging.info("✅ Task completed successfully!")
+    except Exception as e:
+        logging.error(f"💥 An error occurred: {e}")
+    finally:
+        logging.info("👋 Shutting down. Goodbye!")
+
+if __name__ == "__main__":
+    main()
