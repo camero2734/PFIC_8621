@@ -1,4 +1,5 @@
-inputs/*.xlsx
-outputs/*.pdf
+inputs/
+outputs/
+__pycache__
 
 *.xlsx#

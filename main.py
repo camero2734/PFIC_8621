@@ -3,9 +3,10 @@ from reportlab.pdfgen import canvas
 import pandas as pd
 import numpy as np
 import glob
+import os
 from f8621_xy_coordinates import get_coordinates
 
-def create_overlay(path:str, data_dict:dict, xlsx: str):
+def create_overlay(path: str, data_dict: dict, xlsx: str):
     """
     Create the data that will be overlayed on top
     of the form that we want to fill
@@ -20,7 +21,7 @@ def create_overlay(path:str, data_dict:dict, xlsx: str):
     c = canvas.Canvas(path)
     coordinates = get_coordinates()
     add_personal_info(c,coordinates,data_dict)
-    add_pfic_info(c,coordinates,data_dict)
+    add_pfic_info(c, coordinates, df_pfic)
     add_part_1(c,coordinates,data_dict,df_lot, df_eoy,tax_year)
     add_part_2(c,coordinates,data_dict)
     for lot in range(number_of_lots):
@@ -36,14 +37,14 @@ def add_personal_info(c,coordinates,data_dict):
 
     c.drawString(196, 627, u'\u2713') # type of shareholder
 
-def add_pfic_info(c,coordinates,data_dict):
-    keys = ['Name of PFIC', 'PFIC Address', 'PFIC Reference ID']
+def add_pfic_info(c, coordinates, df_pfic: pd.DataFrame):
+    keys = ['PFIC Name', 'PFIC Address', 'PFIC Reference ID']
     for key in keys:
-        c.drawString(coordinates[key][0],coordinates[key][1], data_dict[key])
+        c.drawString(coordinates[key][0],coordinates[key][1], df_pfic[key].values[0])
 
 def add_part_1(c,coordinates,data_dict, df_lot, df_eoy,current_year):
     part_1_dict = {}
-    part_1_dict['Date of Aquision'] = 'Multiple'
+    part_1_dict['Date of Acquisition'] = 'Multiple'
     part_1_dict['Number of Shares'] = 0
     part_1_dict["Amount of 1291"] = ''
     part_1_dict["Amount of 1293"] = ''
@@ -268,21 +269,29 @@ def main():
 
     form = "f8621"
 
-    OUTPUT_FOLDER = f"outputs/20{data_dict['Tax year']}/"
+    OUTPUT_FOLDER = f"./outputs/20{data_dict['Tax year']}/"
+
+    # Create output folder if it doesn't exist
+    if not os.path.exists(OUTPUT_FOLDER):
+        os.makedirs(OUTPUT_FOLDER)
 
     for file in files:
         file_name = file.split('/')[-1].split('.')[0]
         print(f"Processing file: {file_name}")
 
-        FORM_FULL_PATH = f"#{OUTPUT_FOLDER}{file_name}_full.pdf"
-        FORM_OVERLAY_PATH = f"#{OUTPUT_FOLDER}{file_name}_overlay.pdf"
-        FORM_OUTPUT_PATH = f"#{OUTPUT_FOLDER}{file_name}.pdf"
+        FORM_FULL_PATH = f"{OUTPUT_FOLDER}{file_name}_full.pdf"
+        FORM_OVERLAY_PATH = f"{OUTPUT_FOLDER}{file_name}_overlay.pdf"
+        FORM_OUTPUT_PATH = f"{OUTPUT_FOLDER}{file_name}.pdf"
 
         number_of_lots = create_overlay(path=FORM_OVERLAY_PATH, data_dict=data_dict, xlsx=file)
         create_full_8621(form, number_of_lots, FORM_FULL_PATH)
         merge_pdfs(FORM_FULL_PATH,
                 FORM_OVERLAY_PATH,
                 FORM_OUTPUT_PATH)
+        
+        # Delete intermediate files
+        os.remove(FORM_FULL_PATH)
+        os.remove(FORM_OVERLAY_PATH)
 
         print(f"Form filled and saved to {FORM_OUTPUT_PATH}")
 
