@@ -7,6 +7,8 @@ import os
 from f8621_xy_coordinates import get_coordinates
 import logging
 
+CHECKMARK = "\u2713"
+
 
 def create_overlay(path: str, data_dict: dict, xlsx: str):
     """
@@ -24,7 +26,7 @@ def create_overlay(path: str, data_dict: dict, xlsx: str):
     coordinates = get_coordinates()
     add_personal_info(c, coordinates, data_dict)
     add_pfic_info(c, coordinates, df_pfic)
-    add_part_1(c, coordinates, data_dict, df_lot, df_eoy, tax_year)
+    add_part_1(c, coordinates, df_lot, df_eoy, tax_year)
     add_part_2(c, coordinates, data_dict)
 
     # Track gains and losses for this PFIC
@@ -64,7 +66,7 @@ def add_personal_info(c, coordinates, data_dict):
     for key in keys:
         c.drawString(coordinates[key][0], coordinates[key][1], data_dict[key])
 
-    c.drawString(196, 627, "\u2713")  # type of shareholder
+    c.drawString(196, 627, CHECKMARK)  # type of shareholder
 
 
 def add_pfic_info(c, coordinates, df_pfic: pd.DataFrame):
@@ -73,12 +75,12 @@ def add_pfic_info(c, coordinates, df_pfic: pd.DataFrame):
         c.drawString(coordinates[key][0], coordinates[key][1], df_pfic[key].values[0])
 
 
-def add_part_1(c, coordinates, data_dict, df_lot, df_eoy, current_year):
+def add_part_1(c, coordinates, df_lot, df_eoy, current_year):
     part_1_dict = {}
     part_1_dict["Date of Acquisition"] = (
-        "Multiple"
-        if len(df_lot.index) > 1
-        else pd.to_datetime(df_lot["Date: Acquisition"].values[0]).strftime("%Y-%m-%d")
+        pd.to_datetime(df_lot["Date: Acquisition"].values[0]).strftime("%Y-%m-%d")
+        if len(df_lot.index) == 1
+        else "Multiple"
     )
     part_1_dict["Number of Shares"] = 0
     part_1_dict["Amount of 1291"] = ""
@@ -105,23 +107,23 @@ def add_part_1(c, coordinates, data_dict, df_lot, df_eoy, current_year):
         )
 
     value_of_pfic = part_1_dict["Amount of 1296"]
-    if (value_of_pfic > 0) and (value_of_pfic <= 50000):
-        c.drawString(79.2, 373.5, "\u2713")  # value of pfic
+    if (value_of_pfic >= 0) and (value_of_pfic <= 50000):
+        c.drawString(79.2, 373.5, CHECKMARK)  # value of pfic
     elif (value_of_pfic > 50000) and (value_of_pfic <= 100000):
-        c.drawString(151.2, 373.5, "\u2713")  # value of pfic
+        c.drawString(151.2, 373.5, CHECKMARK)  # value of pfic
     elif (value_of_pfic > 100000) and (value_of_pfic <= 150000):
-        c.drawString(245, 373.5, "\u2713")  # value of pfic
+        c.drawString(245, 373.5, CHECKMARK)  # value of pfic
     elif (value_of_pfic > 150000) and (value_of_pfic <= 200000):
-        c.drawString(345.6, 373.5, "\u2713")  # value of pfic
+        c.drawString(345.6, 373.5, CHECKMARK)  # value of pfic
     else:
         c.drawString(199, 362, "{}".format(value_of_pfic))  # value of pfic
 
     # Check marks
-    c.drawString(79.2, 290, "\u2713")  # type of PFIC type c
+    c.drawString(79.2, 290, CHECKMARK)  # type of PFIC type c
 
 
 def add_part_2(c, coordinates, data_dict):
-    c.drawString(52.4, 205.5, "\u2713")  # Part II election to MTM PFIC stock
+    c.drawString(52.4, 205.5, CHECKMARK)  # Part II election to MTM PFIC stock
 
 
 def add_part_4(c, coordinates, df_lot, df_eoy, lot, current_year):
@@ -178,8 +180,11 @@ def add_part_4(c, coordinates, df_lot, df_eoy, lot, current_year):
                 )
                 lot_summary["ordinary_losses"] += abs(etf_dict["12"])
             else:
-                etf_dict["11"] = ""
-                etf_dict["12"] = ""
+                logging.info(
+                    f"    📉 Lot {lot + 1}: Unrecognizable loss of ${abs(etf_dict['10c'])}"
+                )
+                etf_dict["11"] = "0"
+                etf_dict["12"] = "0"
         else:
             etf_dict["11"] = ""
             etf_dict["12"] = ""
@@ -312,7 +317,7 @@ def read_inputs():
     data_dict["City, State, Zip, Country"] = input("🌍 City, State, Zip, Country: ")
     data_dict["Address"] = input("🏠 Address: ")
     data_dict["Tax year"] = input("📅 Tax year (last two digits): ")
-    data_dict["Type of Shareholder"] = "\u2713"  # assuming always an individual
+    data_dict["Type of Shareholder"] = CHECKMARK  # assuming always an individual
 
     # Placeholder values:
     # data_dict['Name of shareholder'] = 'John Doe'
@@ -327,15 +332,12 @@ def read_inputs():
     return data_dict, files
 
 
-def setup_logging():
+def main():
     logging.basicConfig(
         level=logging.INFO,
         format="%(levelname)s: %(message)s",
     )
 
-
-def main():
-    setup_logging()
     logging.info("🚀 Form 8621 Filler Initialized")
 
     try:
