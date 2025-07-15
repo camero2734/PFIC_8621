@@ -183,7 +183,7 @@ def add_part_4(c, coordinates, df_lot, df_eoy, lot, current_year):
         else:
             etf_dict["11"] = ""
             etf_dict["12"] = ""
-            logging.info(f"    � Lot {lot + 1}: Ordinary gain of ${etf_dict['10c']}")
+            logging.info(f"    📈 Lot {lot + 1}: Ordinary gain of ${etf_dict['10c']}")
             lot_summary["ordinary_gains"] += etf_dict["10c"]
         etf_dict["13a"] = ""
         etf_dict["13b"] = ""
@@ -193,7 +193,7 @@ def add_part_4(c, coordinates, df_lot, df_eoy, lot, current_year):
         etf_dict["14c"] = ""
 
     else:
-        logging.info(f"    � Lot {lot + 1}: Sale detected")
+        logging.info(f"    💰 Lot {lot + 1}: Sale detected")
         last_er = df_lot["Exchange Rate: Sale"][lot]
         last_price = df_lot["Price per share: Sale"][lot]
         year_of_sale = df_lot["Date: Sale"][lot].year
@@ -235,7 +235,7 @@ def add_part_4(c, coordinates, df_lot, df_eoy, lot, current_year):
             etf_dict["14a"] = ""
             etf_dict["14b"] = ""
             etf_dict["14c"] = ""
-            logging.info(f"    � Lot {lot + 1}: Ordinary gain of ${etf_dict['13c']}")
+            logging.info(f"    📈 Lot {lot + 1}: Ordinary gain of ${etf_dict['13c']}")
             lot_summary["ordinary_gains"] += etf_dict["13c"]
 
     c.showPage()
