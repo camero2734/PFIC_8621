@@ -25,13 +25,30 @@ def create_overlay(path: str, data_dict: dict, xlsx: str):
     add_pfic_info(c, coordinates, df_pfic)
     add_part_1(c,coordinates,data_dict,df_lot, df_eoy,tax_year)
     add_part_2(c,coordinates,data_dict)
+    
+    # Track gains and losses for this PFIC
+    pfic_summary = {'ordinary_gains': 0, 'ordinary_losses': 0, 'capital_losses': 0}
+    
     for lot in range(number_of_lots):
         logging.info(f"  🔄 Processing lot {lot + 1}/{number_of_lots}")
-        if not add_part_4(c,coordinates,df_lot,df_eoy,lot,tax_year):
-            logging.info(f"    ⏭️ Skipping lot {lot + 1} (sale in different year)")
-            number_of_lots=number_of_lots-1
+        result = add_part_4(c,coordinates,df_lot,df_eoy,lot,tax_year)
+        if isinstance(result, tuple):
+            processed, lot_summary = result
+            if not processed:
+                logging.info(f"    ⏭️ Skipping lot {lot + 1} (sale in different year)")
+                number_of_lots=number_of_lots-1
+            else:
+                # Add to PFIC summary
+                pfic_summary['ordinary_gains'] += lot_summary.get('ordinary_gains', 0)
+                pfic_summary['ordinary_losses'] += lot_summary.get('ordinary_losses', 0)
+                pfic_summary['capital_losses'] += lot_summary.get('capital_losses', 0)
+        else:
+            if not result:
+                logging.info(f"    ⏭️ Skipping lot {lot + 1} (sale in different year)")
+                number_of_lots=number_of_lots-1
+    
     c.save()
-    return number_of_lots
+    return number_of_lots, pfic_summary
 
 def add_personal_info(c,coordinates,data_dict):
     keys = ['Name of shareholder', 'Identifying Number', 'Address', 'City, State, Zip, Country', 'Tax year', 'Type of Shareholder']
@@ -112,6 +129,9 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
         adjusted_basis =  round(original_basis)
 
 
+    # Track gains/losses for this lot
+    lot_summary = {'ordinary_gains': 0, 'ordinary_losses': 0, 'capital_losses': 0}
+
     # Check if lot was sold and get last price and ER
     if np.isnan(df_lot["Price per share: Sale"][lot]):
         logging.info(f"    📈 Lot {lot + 1}: No sale (holding position)")
@@ -133,7 +153,8 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
                     loss_from_ten_c = -1*unreversed_inclusions
                 etf_dict['11'] = unreversed_inclusions
                 etf_dict['12'] = loss_from_ten_c
-                logging.info(f"    📉 Lot {lot + 1}: Ordinary loss of ${etf_dict['12']}")
+                logging.info(f"    📉 Lot {lot + 1}: Ordinary loss of ${abs(etf_dict['12'])}")
+                lot_summary['ordinary_losses'] += abs(etf_dict['12'])
             else:
                 etf_dict['11'] = ''
                 etf_dict['12'] = ''
@@ -141,6 +162,7 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
             etf_dict['11'] = ''
             etf_dict['12'] = ''
             logging.info(f"    📈 Lot {lot + 1}: Ordinary gain of ${etf_dict['10c']}")
+            lot_summary['ordinary_gains'] += etf_dict['10c']
         etf_dict['13a'] = ''
         etf_dict['13b'] = ''
         etf_dict['13c'] = ''
@@ -154,7 +176,7 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
         last_price = df_lot['Price per share: Sale'][lot]
         year_of_sale = df_lot['Date: Sale'][lot].year
         if year_of_sale<current_year:
-            return False
+            return False, lot_summary
         fmv_dollars = round(number_of_shares*last_price/last_er)
         logging.debug(f"    💱 Sale exchange rate: {last_er}, Sale price: ${last_price}")
         logging.debug(f"    💰 Sale proceeds: ${fmv_dollars}, Adjusted basis: ${adjusted_basis}")
@@ -171,17 +193,20 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
                 etf_dict['14a'] = unreversed_inclusions
                 etf_dict['14b'] = loss_from_thirteen_c
                 etf_dict['14c'] = ''
-                logging.info(f"    📉 Lot {lot + 1}: Ordinary loss of ${etf_dict['14b']}")
+                logging.info(f"    📉 Lot {lot + 1}: Ordinary loss of ${abs(etf_dict['14b'])}")
+                lot_summary['ordinary_losses'] += abs(etf_dict['14b'])
             else:
                 etf_dict['14a'] = 0
                 etf_dict['14b'] = 0
                 etf_dict['14c'] = etf_dict['13c']
-                logging.info(f"    📉 Lot {lot + 1}: Capital loss of ${etf_dict['14c']}")
+                logging.info(f"    📉 Lot {lot + 1}: Capital loss of ${abs(etf_dict['14c'])}")
+                lot_summary['capital_losses'] += abs(etf_dict['14c'])
         else:
             etf_dict['14a'] = ''
             etf_dict['14b'] = ''
             etf_dict['14c'] = ''
             logging.info(f"    📈 Lot {lot + 1}: Ordinary gain of ${etf_dict['13c']}")
+            lot_summary['ordinary_gains'] += etf_dict['13c']
 
     c.showPage()
     for key in etf_dict.keys():
@@ -189,7 +214,7 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
             c.drawString(coordinates[key][0],coordinates[key][1], '{}'.format(etf_dict[key]))
         else:
             logging.warning(f"    ⚠️ Coordinate missing for {key} in lot {lot + 1}")
-    return True
+    return True, lot_summary
 
 
 def merge_pdfs(pdf_1, pdf_2, output):
@@ -288,6 +313,9 @@ def main():
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
         logging.info(f"📁 Output directory: {OUTPUT_FOLDER}")
 
+        # Track totals across all PFICs
+        total_summary = {'ordinary_gains': 0, 'ordinary_losses': 0, 'capital_losses': 0}
+
         for file in files:
             file_name = file.split('/')[-1].split('.')[0]
             logging.info(f"📂 Processing PFIC: {file_name}")
@@ -296,7 +324,7 @@ def main():
             FORM_OVERLAY_PATH = f"{OUTPUT_FOLDER}{file_name}_overlay.pdf"
             FORM_OUTPUT_PATH = f"{OUTPUT_FOLDER}{file_name}.pdf"
 
-            number_of_lots = create_overlay(path=FORM_OVERLAY_PATH, data_dict=data_dict, xlsx=file)
+            number_of_lots, pfic_summary = create_overlay(path=FORM_OVERLAY_PATH, data_dict=data_dict, xlsx=file)
             create_full_8621(form, number_of_lots, FORM_FULL_PATH)
             merge_pdfs(FORM_FULL_PATH,
                     FORM_OVERLAY_PATH,
@@ -306,9 +334,38 @@ def main():
             os.remove(FORM_FULL_PATH)
             os.remove(FORM_OVERLAY_PATH)
 
+            # Add to total summary
+            total_summary['ordinary_gains'] += pfic_summary['ordinary_gains']
+            total_summary['ordinary_losses'] += pfic_summary['ordinary_losses']
+            total_summary['capital_losses'] += pfic_summary['capital_losses']
+
             logging.info(f"  ✅ Form completed and saved to {FORM_OUTPUT_PATH}")
 
         logging.info("✅ All forms processed successfully!")
+        
+        # Display summary and instructions with visual emphasis
+        logging.info("")
+        logging.info("=" * 60)
+        logging.info(f"📋 SUMMARY OF GAINS AND LOSSES FOR TAX YEAR 20{data_dict['Tax year']}")
+        logging.info("=" * 60)
+        
+        if total_summary['ordinary_gains'] > 0:
+            logging.info(f"💰 Total Ordinary Gains: ${total_summary['ordinary_gains']:.2f}")
+            logging.info("   ➡️  Add this amount to your ordinary income on your tax return")
+            logging.info("")
+        if total_summary['ordinary_losses'] > 0:
+            logging.info(f"📉 Total Ordinary Losses: ${total_summary['ordinary_losses']:.2f}")
+            logging.info("   ➡️  Include this amount as an ordinary loss on your tax return")
+            logging.info("")
+        if total_summary['capital_losses'] > 0:
+            logging.info(f"📉 Total Capital Losses: ${total_summary['capital_losses']:.2f}")
+            logging.info("   ➡️  Report according to capital loss rules in the Code and regulations")
+            logging.info("")
+        
+        if all(v == 0 for v in total_summary.values()):
+            logging.info("📊 No gains or losses to report this year")
+            logging.info("")
+
     except Exception as e:
         logging.error(f"💥 An error occurred: {e}")
     finally:
