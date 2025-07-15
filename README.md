@@ -53,6 +53,7 @@ In the `PFIC Details` sheet, you need to fill out:
   - Can be whatever you want, but must be consistent year-to-year
   - From the IRS:
     > The reference ID number must be alphanumeric [A-Z, 0-9] and no special characters or spaces are permitted. The length of a given reference ID number is limited to 50 characters.
+- The share class (you can usually find this in the Prospectus by searching for "Share Class")
 
 ## Running the program
 To run the program, first install `uv` by following the instructions in the [uv documentation](https://docs.astral.sh/uv/getting-started/installation/).

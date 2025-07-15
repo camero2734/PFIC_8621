@@ -70,7 +70,8 @@ def add_personal_info(c, coordinates, data_dict):
 
 
 def add_pfic_info(c, coordinates, df_pfic: pd.DataFrame):
-    keys = ["PFIC Name", "PFIC Address", "PFIC Reference ID"]
+    print(df_pfic)
+    keys = ["PFIC Name", "PFIC Address", "PFIC Reference ID", "PFIC Share Class"]
     for key in keys:
         c.drawString(coordinates[key][0], coordinates[key][1], df_pfic[key].values[0])
 
@@ -85,7 +86,6 @@ def add_part_1(c, coordinates, df_lot, df_eoy, current_year):
     part_1_dict["Number of Shares"] = 0
     part_1_dict["Amount of 1291"] = ""
     part_1_dict["Amount of 1293"] = ""
-    part_1_dict["Descrition of each class of shares"] = "Class A"
     for lot in range(len(df_lot.index)):
         # Check if lot was sold and get last price and ER
         if np.isnan(df_lot["Price per share: Sale"][lot]):
