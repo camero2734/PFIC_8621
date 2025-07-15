@@ -32,16 +32,18 @@ If the share lot was sold, you also need to fill out the sale details:
 
 If it wasn't sold, leave the sale details blank.
 
+If you only sold part of the lot, you need to split it into two separate rows with the same acquisition date: one for the sold part and one for the remaining part. The remaining part should have the sale details left blank.
+
 ### EOY Details
 In the `EOY Details` sheet, you need to fill out for each year:
 - The year
-- The FMV of the a share of the PFIC on December 31st (in local currency)
+- The FMV of a share of the PFIC on December 31st (in local currency)
 - The exchange rate on December 31st (e.g. EUR to USD)
 
 ### PFIC Details
 In the `PFIC Details` sheet, you need to fill out:
 - The name of the PFIC (e.g. Vanguard FTSE All-World UCITS ETF)
-- The address of the PFIC (you can find this in the Prospectus by searching for "Registered Office")
+- The address of the PFIC (you can usually find this in the Prospectus by searching for "Registered Office")
 - The reference ID
   - Recommended to use the ticker name, like VWCE or SPYY, without any special characters
   - Can be whatever you want, but must be consistent year-to-year
