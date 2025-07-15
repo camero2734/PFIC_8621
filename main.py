@@ -230,11 +230,14 @@ def create_full_8621(path, number_of_page_2, output):
     orig_path = path + '.pdf'
     page_1_path = path + 'page1.pdf'
     page_2_path = path + 'page2.pdf'
-    split(orig_path,0,page_1_path)
-    split(orig_path,1,page_2_path)
-    concatenate([page_1_path,page_2_path],output)
-    for page in range(number_of_page_2-1):
-        concatenate([output,page_2_path],output)
+    split(orig_path, 0, page_1_path)
+    split(orig_path, 1, page_2_path)
+    concatenate([page_1_path, page_2_path], output)
+    for page in range(number_of_page_2 - 1):
+        concatenate([output,page_2_path], output)
+
+    os.remove(page_1_path)
+    os.remove(page_2_path)
 
 def read_inputs():
     data_dict = {}
