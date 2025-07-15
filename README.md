@@ -2,6 +2,10 @@
 
 This program fills out IRS Form 8621, specifically for Mark-to-Market (MTM) elections.
 
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/970426a5-dd5a-46a1-a0a0-97e6c16de4f6" />
+
+---
+
 > [!CAUTION]
 > This tool does not provide not tax advice, cannot be guaranteed to generate a compliant output, and is not responsible for any errors in the generated forms. It is your responsibility to ensure that the filled-out forms are correct and compliant with IRS regulations. Consult a tax professional if needed.
 
