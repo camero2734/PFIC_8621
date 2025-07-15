@@ -4,7 +4,7 @@ coordinate_dict = {
 "Identifying Number"                    :(336, 688), # SS Number
 "Address"                               :(36, 662),  # Address
 "City, State, Zip, Country"             :(36, 638), # city stare zip
-"Tax year"                              :(459, 675), # tax year
+"Tax year"                              :(461, 675), # tax year
 "Type of Shareholder"                   :(196, 627), # type of shareholder
 #PFIC info
 "PFIC Name"                             :(36, 567), # PFIC

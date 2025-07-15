@@ -11,7 +11,6 @@ def create_overlay(path: str, data_dict: dict, xlsx: str):
     Create the data that will be overlayed on top
     of the form that we want to fill
     """
-    number_of_lots = 5
     tax_year=2000+int(data_dict["Tax year"])
     df_lot = pd.read_excel(xlsx, sheet_name = 'Lot Details')
     df_eoy = pd.read_excel(xlsx, sheet_name = 'EOY Details')
@@ -42,9 +41,12 @@ def add_pfic_info(c, coordinates, df_pfic: pd.DataFrame):
     for key in keys:
         c.drawString(coordinates[key][0],coordinates[key][1], df_pfic[key].values[0])
 
-def add_part_1(c,coordinates,data_dict, df_lot, df_eoy,current_year):
+def add_part_1(c, coordinates, data_dict, df_lot, df_eoy, current_year):
     part_1_dict = {}
-    part_1_dict['Date of Acquisition'] = 'Multiple'
+    part_1_dict['Date of Acquisition'] = (
+        'Multiple' if len(df_lot.index) > 1
+        else pd.to_datetime(df_lot['Date: Acquisition'].values[0]).strftime('%Y-%m-%d')
+    )
     part_1_dict['Number of Shares'] = 0
     part_1_dict["Amount of 1291"] = ''
     part_1_dict["Amount of 1293"] = ''
@@ -267,16 +269,13 @@ def read_inputs():
 def main():
     data_dict, files = read_inputs()
     if not files:
-        print("No input files found in 'inputs/' directory.")
+        print("No input files found in 'inputs/' directory. Please consult the README for instructions.")
         exit(1)
 
     form = "f8621"
 
     OUTPUT_FOLDER = f"./outputs/20{data_dict['Tax year']}/"
-
-    # Create output folder if it doesn't exist
-    if not os.path.exists(OUTPUT_FOLDER):
-        os.makedirs(OUTPUT_FOLDER)
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
     for file in files:
         file_name = file.split('/')[-1].split('.')[0]

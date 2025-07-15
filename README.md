@@ -2,8 +2,11 @@
 
 This program fills out IRS Form 8621, specifically for Mark-to-Market (MTM) elections.
 
+> [!CAUTION]
+> This tool does not provide not tax advice, cannot be guaranteed to generate a compliant output, and is not responsible for any errors in the generated forms. It is your responsibility to ensure that the filled-out forms are correct and compliant with IRS regulations. Consult a tax professional if needed.
+
 ## Getting started
-For each PFIC you'd like to generate a form for, create a `REFERENCE_ID.xlsx` file in the `inputs` folder, based on the `f8621.xlsx` template. It is recommended to use the e.g. ticker for an ETF as the reference id.
+For each PFIC you'd like to generate a form for, copy the `f8621.xlsx` template file into the `inputs` folder and rename it to something meaningful (e.g. the reference ID of the PFIC).
 
 Example:
 ```bash
@@ -40,8 +43,10 @@ In the `PFIC Details` sheet, you need to fill out:
 - The name of the PFIC (e.g. Vanguard FTSE All-World UCITS ETF)
 - The address of the PFIC (you can find this in the Prospectus by searching for "Registered Office")
 - The reference ID
-  - Recommended to use the ticker name, like VWCE or SPYY
+  - Recommended to use the ticker name, like VWCE or SPYY, without any special characters
   - Can be whatever you want, but must be consistent year-to-year
+  - From the IRS:
+    > The reference ID number must be alphanumeric [A-Z, 0-9] and no special characters or spaces are permitted. The length of a given reference ID number is limited to 50 characters.
 
 ## Running the program
 To run the program, first install `uv` by following the instructions in the [uv documentation](https://docs.astral.sh/uv/getting-started/installation/).
@@ -66,5 +71,3 @@ This will ask you several questions in the terminal:
 That's all of the data needed. It will then generate a PDF for each PFIC in the `outputs/YEAR` folder, named `REFERENCE_ID.pdf`. For example, if you have `vwce.xlsx` and `spyy.xlsx` in the `inputs` folder, and run the program for 2025, it will generate:
 - `outputs/2025/vwce.pdf`
 - `outputs/2025/spyy.pdf`
-
-You can then include these with your tax return.
