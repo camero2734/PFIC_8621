@@ -53,7 +53,7 @@ uv install
 
 Finally, run the program:
 ```bash
-uv run f8621_filler.py
+uv run main.py
 ```
 
 This will ask you several questions in the terminal:
@@ -63,8 +63,8 @@ This will ask you several questions in the terminal:
 4. Address (e.g. Some Street 123)
 5. Tax year, just the last 2 digits (e.g. 19 for 2019)
 
-That's all of the data needed. It will then generate a PDF for each PFIC in the `outputs` folder, named `REFERENCE_ID.pdf`. For example, if you have `vwce.xlsx` and `spyy.xlsx` in the `inputs` folder, it will generate:
-- `outputs/vwce.pdf`
-- `outputs/spyy.pdf`
+That's all of the data needed. It will then generate a PDF for each PFIC in the `outputs/YEAR` folder, named `REFERENCE_ID.pdf`. For example, if you have `vwce.xlsx` and `spyy.xlsx` in the `inputs` folder, and run the program for 2025, it will generate:
+- `outputs/2025/vwce.pdf`
+- `outputs/2025/spyy.pdf`
 
 You can then include these with your tax return.

@@ -36,15 +36,3 @@ coordinate_dict = {
 
 def get_coordinates():
     return coordinate_dict
-##row = 0
-##for key in coordinate_dict.keys():
-##    print("lbl{} = tkinter.Label(window, text='{}')".format(row,key))
-##    print("lbl{}.grid(column=0, row={})".format(row,row))
-##    print("txt{}=tkinter.Entry(window,width=30)".format(row))
-##    print("txt{}.grid(column=1, row={})".format(row,row))
-##    row = row+1
-##
-##row = 0
-##for key in coordinate_dict.keys():
-##    print("data_dict['{}'] = txt{}.get()".format(key,row))
-##    row = row+1
