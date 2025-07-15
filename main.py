@@ -17,7 +17,8 @@ def create_overlay(path: str, data_dict: dict, xlsx: str):
     df_eoy = pd.read_excel(xlsx, sheet_name = 'EOY Details')
     df_pfic = pd.read_excel(xlsx, sheet_name = 'PFIC Details')
     number_of_lots = len(df_lot.index)
-    logging.debug(f"📊 Lot details dataframe:\n{df_lot}")
+    logging.info(f"  📊 Found {number_of_lots} lots to process")
+    logging.debug(f"  📊 Lot details dataframe:\n{df_lot}")
     c = canvas.Canvas(path)
     coordinates = get_coordinates()
     add_personal_info(c,coordinates,data_dict)
@@ -25,7 +26,9 @@ def create_overlay(path: str, data_dict: dict, xlsx: str):
     add_part_1(c,coordinates,data_dict,df_lot, df_eoy,tax_year)
     add_part_2(c,coordinates,data_dict)
     for lot in range(number_of_lots):
+        logging.info(f"  🔄 Processing lot {lot + 1}/{number_of_lots}")
         if not add_part_4(c,coordinates,df_lot,df_eoy,lot,tax_year):
+            logging.info(f"    ⏭️ Skipping lot {lot + 1} (sale in different year)")
             number_of_lots=number_of_lots-1
     c.save()
     return number_of_lots
@@ -94,10 +97,11 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
     cost_aquisition = df_lot['Cost: Acquisition'][lot]
     er_of_aqiusition   = df_lot['Exchange Rate: Acquisition'][lot]
 
-    logging.debug(f"📊 Processing lot {lot}:\n{df_lot}")
 
     number_of_shares = cost_aquisition/price_aquisition
     original_basis = cost_aquisition/er_of_aqiusition
+
+    logging.debug(f"    📊 Lot {lot + 1} details - Shares: {number_of_shares:.2f}, Original basis: ${original_basis:.2f}")
 
     # Get last year's basis
     if current_year > year_of_aqiusition:
@@ -110,12 +114,12 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
 
     # Check if lot was sold and get last price and ER
     if np.isnan(df_lot["Price per share: Sale"][lot]):
-        logging.info(f"📈 No sale detected for lot {lot}")
+        logging.info(f"    📈 Lot {lot + 1}: No sale (holding position)")
         last_er = df_eoy[df_eoy['Year']==current_year]["Exchange Rate"].values[0]
         last_price = df_eoy[df_eoy['Year']==current_year]["Price"].values[0]
         fmv_dollars = round(number_of_shares*last_price/last_er)
-        logging.debug(f"💱 Last ER={last_er}, Last Price={last_price}")
-        logging.debug(f"💰 FMV={fmv_dollars}, Adjusted Basis={adjusted_basis}")
+        logging.debug(f"    💱 Exchange rate: {last_er}, Price: ${last_price}")
+        logging.debug(f"    💰 FMV: ${fmv_dollars}, Adjusted basis: ${adjusted_basis}")
 
         etf_dict['10a'] = fmv_dollars
         etf_dict['10b'] = adjusted_basis
@@ -129,14 +133,14 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
                     loss_from_ten_c = -1*unreversed_inclusions
                 etf_dict['11'] = unreversed_inclusions
                 etf_dict['12'] = loss_from_ten_c
-                logging.info(f"📉 12: Include {etf_dict['12']} as an ordinary loss on your tax return")
+                logging.info(f"    📉 Lot {lot + 1}: Ordinary loss of ${etf_dict['12']}")
             else:
                 etf_dict['11'] = ''
                 etf_dict['12'] = ''
         else:
             etf_dict['11'] = ''
             etf_dict['12'] = ''
-            logging.info(f"📈 10c: Add gain of {etf_dict['10c']} to your ordinary income")
+            logging.info(f"    📈 Lot {lot + 1}: Ordinary gain of ${etf_dict['10c']}")
         etf_dict['13a'] = ''
         etf_dict['13b'] = ''
         etf_dict['13c'] = ''
@@ -145,15 +149,15 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
         etf_dict['14c'] = ''
 
     else:
-        logging.info(f"💸 Sale detected for lot {lot}")
+        logging.info(f"    💸 Lot {lot + 1}: Sale detected")
         last_er = df_lot['Exchange Rate: Sale'][lot]
         last_price = df_lot['Price per share: Sale'][lot]
         year_of_sale = df_lot['Date: Sale'][lot].year
         if year_of_sale<current_year:
             return False
         fmv_dollars = round(number_of_shares*last_price/last_er)
-        logging.debug(f"💱 Last ER={last_er}, Last Price={last_price}")
-        logging.debug(f"💰 FMV={fmv_dollars}, Adjusted Basis={adjusted_basis}")
+        logging.debug(f"    💱 Sale exchange rate: {last_er}, Sale price: ${last_price}")
+        logging.debug(f"    💰 Sale proceeds: ${fmv_dollars}, Adjusted basis: ${adjusted_basis}")
         etf_dict['13a'] = round(fmv_dollars)
         etf_dict['13b'] = round(adjusted_basis)
         etf_dict['13c'] = etf_dict['13a'] - etf_dict['13b']
@@ -167,29 +171,24 @@ def add_part_4(c,coordinates,df_lot,df_eoy,lot,current_year):
                 etf_dict['14a'] = unreversed_inclusions
                 etf_dict['14b'] = loss_from_thirteen_c
                 etf_dict['14c'] = ''
-                logging.info(f"📉 14b: Enter {etf_dict['14b']} as an ordinary loss")
+                logging.info(f"    📉 Lot {lot + 1}: Ordinary loss of ${etf_dict['14b']}")
             else:
                 etf_dict['14a'] = 0
                 etf_dict['14b'] = 0
                 etf_dict['14c'] = etf_dict['13c']
-                logging.info(f"📉 14c: Include {etf_dict['14c']} on tax return according to the rules generally applicable for losses provided elsewhere in the Code and regulations")
+                logging.info(f"    📉 Lot {lot + 1}: Capital loss of ${etf_dict['14c']}")
         else:
             etf_dict['14a'] = ''
             etf_dict['14b'] = ''
             etf_dict['14c'] = ''
-            logging.info(f"📈 13c: Add gain of {etf_dict['13c']} to your ordinary income")
-        etf_dict['10a'] = ''
-        etf_dict['10b'] = ''
-        etf_dict['10c'] = ''
-        etf_dict['11'] = ''
-        etf_dict['12'] = ''
+            logging.info(f"    📈 Lot {lot + 1}: Ordinary gain of ${etf_dict['13c']}")
 
     c.showPage()
     for key in etf_dict.keys():
         if key in coordinates:
             c.drawString(coordinates[key][0],coordinates[key][1], '{}'.format(etf_dict[key]))
         else:
-            logging.warning(f"⚠️ {key} not found in coordinates dictionary. Skipping.")
+            logging.warning(f"    ⚠️ Coordinate missing for {key} in lot {lot + 1}")
     return True
 
 
@@ -275,7 +274,7 @@ def setup_logging():
 
 def main():
     setup_logging()
-    logging.info("🚀 Form 8621 Filer Initialized")
+    logging.info("🚀 Form 8621 Filler Initialized")
     
     try:
         data_dict, files = read_inputs()
@@ -287,10 +286,11 @@ def main():
 
         OUTPUT_FOLDER = f"./outputs/20{data_dict['Tax year']}/"
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+        logging.info(f"📁 Output directory: {OUTPUT_FOLDER}")
 
         for file in files:
             file_name = file.split('/')[-1].split('.')[0]
-            logging.info(f"📂 Processing file: {file_name}")
+            logging.info(f"📂 Processing PFIC: {file_name}")
 
             FORM_FULL_PATH = f"{OUTPUT_FOLDER}{file_name}_full.pdf"
             FORM_OVERLAY_PATH = f"{OUTPUT_FOLDER}{file_name}_overlay.pdf"
@@ -306,9 +306,9 @@ def main():
             os.remove(FORM_FULL_PATH)
             os.remove(FORM_OVERLAY_PATH)
 
-            logging.info(f"✅ Form filled and saved to {FORM_OUTPUT_PATH}")
+            logging.info(f"  ✅ Form completed and saved to {FORM_OUTPUT_PATH}")
 
-        logging.info("✅ Task completed successfully!")
+        logging.info("✅ All forms processed successfully!")
     except Exception as e:
         logging.error(f"💥 An error occurred: {e}")
     finally:
